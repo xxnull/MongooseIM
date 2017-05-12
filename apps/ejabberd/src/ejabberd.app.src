@@ -15,6 +15,7 @@
                   crypto,
                   csv,
                   cuesport,
+                  eldap,
                   exml,
                   exometer,
                   exometer_core,

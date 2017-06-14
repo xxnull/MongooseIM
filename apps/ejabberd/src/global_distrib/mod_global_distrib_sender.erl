@@ -20,6 +20,7 @@ stop(Host) ->
     mod_global_distrib_utils:stop(?MODULE, Host, fun stop/0).
 
 start() ->
+    opt(tls_opts), %% Check for required tls_opts
     ChildSpec = {?MODULE, {?MODULE, start_link, []}, transient, 1000, supervisor, [?MODULE]},
     supervisor:start_child(ejabberd_sup, ChildSpec).
 

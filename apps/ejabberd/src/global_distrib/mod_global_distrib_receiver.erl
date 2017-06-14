@@ -29,6 +29,7 @@ stop(Host) ->
     mod_global_distrib_utils:stop(?MODULE, Host, fun stop/0).
 
 start() ->
+    opt(tls_opts), %% Check for required tls_opts
     wpool:start_sup_pool(?MODULE, [{workers, opt(num_of_workers)}, {worker, {mod_global_distrib_worker, []}}]),
     {ok, _} = ranch:start_listener(?MODULE, 1, ranch_tcp, [{port, opt(listen_port)}], ?MODULE, [{worker_pool, ?MODULE}]).
 
@@ -42,8 +43,8 @@ start_link(Ref, Socket, Transport, Opts) ->
 
 init({Ref, Socket, ranch_tcp, Opts}) ->
     [{worker_pool, WorkerPool}] = Opts,
-	ok = ranch:accept_ack(Ref),
-    {ok, TLSSocket} = fast_tls:tcp_to_tls(Socket, [no_verify, {certfile, opt(certfile)}, {cafile, opt(cafile)}]),
+    ok = ranch:accept_ack(Ref),
+    {ok, TLSSocket} = fast_tls:tcp_to_tls(Socket, opt(tls_opts)),
     ok = fast_tls:setopts(TLSSocket, [{active, once}]),
     gen_server:enter_loop(?MODULE, [], #state{socket = TLSSocket, worker_pool = WorkerPool,
                                               waiting_for = header}).

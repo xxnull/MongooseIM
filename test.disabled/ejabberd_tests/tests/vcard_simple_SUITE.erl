@@ -137,9 +137,9 @@ retrieve_own_card(Config) ->
 
 
 %% If no vCard exists, the server MUST return a stanza error
-%% %% (which SHOULD be <item-not-found/>) or an IQ-result
-%% %% containing an empty <vCard/> element.
-%% %% We return <item-not-found/>
+%% (which SHOULD be <item-not-found/>) or an IQ-result
+%% containing an empty <vCard/> element.
+%% We return <item-not-found/>
 user_doesnt_exist(Config) ->
     escalus:story(
       Config, [{alice, 1}],

@@ -196,8 +196,7 @@ get_odbc_stats(ODBCWorkers) ->
 
 get_port_from_odbc_connection({{ok, DB, Pid}, _WorkerPid}) when DB =:= mysql;
                                                                 DB =:= pgsql ->
-    ProcStatus = sys:get_status(Pid),
-    ProcState = get_state_from_proc_status(ProcStatus),
+    ProcState = sys:get_state(Pid),
     get_port_from_proc_state(DB, ProcState);
 get_port_from_odbc_connection({{ok, odbc, Pid}, WorkerPid}) ->
     Links = element(2, erlang:process_info(Pid, links)) -- [WorkerPid],
@@ -205,15 +204,42 @@ get_port_from_odbc_connection({{ok, odbc, Pid}, WorkerPid}) ->
 get_port_from_odbc_connection(_) ->
     undefined.
 
-get_state_from_proc_status({_, _, _, Status}) ->
-    Misc = lists:nth(5, Status),
-    {_, [{_, State}]} = lists:nth(3, Misc),
-    State.
-
+%% @doc Gets a socket from mysql/epgsql library Gen_server state
 get_port_from_proc_state(mysql, State) ->
+    %% -record(state, {server_version, connection_id, socket, sockmod, ssl_opts,
+    %%                 host, port, user, password, log_warnings,
+    %%                 ping_timeout,
+    %%                 query_timeout, query_cache_time,
+    %%                 affected_rows = 0, status = 0, warning_count = 0, insert_id = 0,
+    %%                 transaction_level = 0, ping_ref = undefined,
+    %%                 stmts = dict:new(), query_cache = empty, cap_found_rows = false}).
     SockInfo = element(4, State),
     get_port_from_sock(SockInfo);
 get_port_from_proc_state(pgsql, State) ->
+    %% -record(state, {mod,
+    %%                 sock,
+    %%                 data = <<>>,
+    %%                 backend,
+    %%                 handler,
+    %%                 codec,
+    %%                 queue = queue:new(),
+    %%                 async,
+    %%                 parameters = [],
+    %%                 types = [],
+    %%                 columns = [],
+    %%                 rows = [],
+    %%                 results = [],
+    %%                 batch = [],
+    %%                 sync_required,
+    %%                 txstatus,
+    %%                 complete_status :: undefined | atom() | {atom(), integer()},
+    %%                 repl_last_received_lsn,
+    %%                 repl_last_flushed_lsn,
+    %%                 repl_last_applied_lsn,
+    %%                 repl_feedback_required,
+    %%                 repl_cbmodule,
+    %%                 repl_cbstate,
+    %%                 repl_receiver}).
     SockInfo = element(3, State),
     get_port_from_sock(SockInfo).
 

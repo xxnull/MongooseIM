@@ -194,22 +194,33 @@ get_odbc_stats(ODBCWorkers) ->
     PortStats = [inet_stats(Port) || Port <- lists:flatten(Ports)],
     [{workers, length(ODBCConnections)} | merge_stats(PortStats)].
 
-get_port_from_odbc_connection({{ok, DB, Pid}, WorkerPid}) when DB =:= mysql ->
-    element(2, erlang:process_info(Pid, links)) -- [WorkerPid];
-get_port_from_odbc_connection({{ok, DB, Pid}, _WorkerPid}) when DB =:= pgsql ->
+get_port_from_odbc_connection({{ok, DB, Pid}, _WorkerPid}) when DB =:= mysql;
+                                                                DB =:= pgsql ->
     ProcStatus = sys:get_status(Pid),
-    get_port_from_proc_status(ProcStatus);
+    ProcState = get_state_from_proc_status(ProcStatus),
+    get_port_from_proc_state(DB, ProcState);
 get_port_from_odbc_connection({{ok, odbc, Pid}, WorkerPid}) ->
     Links = element(2, erlang:process_info(Pid, links)) -- [WorkerPid],
     [Port || Port <- Links, is_port(Port), {name, "tcp_inet"} == erlang:port_info(Port, name)];
 get_port_from_odbc_connection(_) ->
     undefined.
 
-get_port_from_proc_status({_, _, _, Status}) ->
+get_state_from_proc_status({_, _, _, Status}) ->
     Misc = lists:nth(5, Status),
     {_, [{_, State}]} = lists:nth(3, Misc),
-    {_, SockInfo, _} = element(3, State),
-    element(2, SockInfo).
+    State.
+
+get_port_from_proc_state(mysql, State) ->
+    SockInfo = element(4, State),
+    get_port_from_sock(SockInfo);
+get_port_from_proc_state(pgsql, State) ->
+    SockInfo = element(3, State),
+    get_port_from_sock(SockInfo).
+
+get_port_from_sock({sslsocket, {_, Port, _, _}, _}) ->
+    Port;
+get_port_from_sock(Port) ->
+    Port.
 
 merge_stats(Stats) ->
     OrdDict = lists:foldl(fun(Stat, Acc) ->
